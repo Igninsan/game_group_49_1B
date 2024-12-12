@@ -38,6 +38,7 @@ class Boss(GameEntity):
     def __init__(self, name, health, damage):
         super().__init__(name, health, damage)
         self.__defence = None
+        self.stun = 0
 
     @property
     def defence(self):
@@ -48,14 +49,18 @@ class Boss(GameEntity):
         self.__defence = hero.ability
 
     def attack(self, heroes):
-        for hero in heroes:
-            if hero.health > 0:
-                if type(hero) == Berserk and self.defence != hero.ability:
-                    block = choice([5, 10])  # 5 or 10
-                    hero.blocked_damage = block
-                    hero.health -= (self.damage - block)
-                else:
-                    hero.health -= self.damage
+        if self.stun > 0:
+            print('Boss is stunned')
+            self.stun -= 1
+        else:
+            for hero in heroes:
+                if hero.health > 0:
+                    if type(hero) == Berserk and self.defence != hero.ability:
+                        block = choice([5, 10])  # 5 or 10
+                        hero.blocked_damage = block
+                        hero.health -= (self.damage - block)
+                    else:
+                        hero.health -= self.damage
 
     def __str__(self):
         return f'BOSS ' + super().__str__() + f' defence: {self.__defence}'
@@ -92,8 +97,12 @@ class Magic(Hero):
         super().__init__(name, health, damage, 'BOOST')
 
     def apply_super_power(self, boss, heroes):
-        # TODO Implementation of BOOST ability
-        pass
+        if round_number == 1:
+            for hero in heroes:
+                hero.damage += 4
+        if round_number == 4:
+            for hero in heroes:
+                hero.damage -= 4
 
 
 class Medic(Hero):
@@ -124,6 +133,69 @@ class Berserk(Hero):
         boss.health -= self.blocked_damage
         print(f'Berserk {self.name} reverted {self.__blocked_damage} damage to boss')
 
+
+class Witcher(Hero):
+    def __init__(self, name, health, damage):
+        super().__init__(name, health, damage, 'REVIVE')
+
+    def attack(self, boss):
+        pass
+
+    def apply_super_power(self, boss, heroes):
+        for hero in heroes:
+            if hero.health == 0:
+                hero.health, self.health = self.health, 0
+                print(f'Witcher {self.name} revived {hero.name}')
+                break
+
+
+class Hacker(Hero):
+    def __init__(self, name, health, damage, hack_value):
+        super().__init__(name, health, damage,'HACK')
+        self.__hack_value = hack_value
+
+    @property
+    def hack_value(self):
+        return self.__hack_value
+
+    def apply_super_power(self, boss, heroes):
+        if round_number % 2 == 0:
+            boss.health -= self.__hack_value
+            hero = choice(heroes)
+            if hero.health != 0:
+                hero.health += self.__hack_value
+                print(f'Hacker {self.name} stole health from {boss.name} and healed {hero.name}')
+            else:
+                self.health += 0
+                print(f'Hacker {self.name} stole health from {boss.name} and healed {self.name}')
+
+
+class Thor(Hero):
+    def __init__(self, name, health, damage):
+        super().__init__(name, health, damage, 'STUN')
+
+    def apply_super_power(self, boss, heroes):
+        if randint(1, 10) == 10:
+            boss.stun += 1
+            print(f'Thor {self.name} stunned boss {boss.name}')
+
+
+class Samurai(Hero):
+    def __init__(self, name, health, damage, shuriken_power):
+        super().__init__(name, health, damage, 'SHURIKEN_THROW')
+        self.__shuriken_power = shuriken_power
+
+    @property
+    def shuriken_power(self):
+        return self.__shuriken_power
+
+    def apply_super_power(self, boss, heroes):
+        if randint(1, 2) == 1:
+            boss.health -= self.__shuriken_power
+            print(f'Samurai {self.name} threw Virus and dealt {self.__shuriken_power} damage to boss {boss.name}')
+        else:
+            boss.health += self.__shuriken_power
+            print(f'Samurai {self.name} threw Vaccine and healed {self.__shuriken_power} health to boss {boss.name}')
 
 round_number = 0
 
@@ -163,15 +235,19 @@ def show_statistics(boss, heroes):
 
 
 def start_game():
-    boss = Boss('Lord', 1000, 50)
+    boss = Boss('Lord', 1200, 50)
     warrior_1 = Warrior('Brane', 280, 15)
     warrior_2 = Warrior('Alucard', 270, 20)
     magic = Magic('Subaru', 290, 10)
     doc = Medic('Merlin', 250, 5, 15)
     assistant = Medic('Florin', 300, 5, 5)
     berserk = Berserk('Guts', 260, 10)
+    witcher = Witcher('Gerald', 280, 0)
+    hacker = Hacker('Jeff', 250, 5, 15)
+    thor = Thor('Chris', 270, 10)
+    samurai = Samurai('Genji', 250, 5, 10)
 
-    heroes_list = [warrior_1, warrior_2, magic, doc, assistant, berserk]
+    heroes_list = [warrior_1, warrior_2, magic, doc, assistant, berserk, witcher, hacker, thor, samurai]
 
     show_statistics(boss, heroes_list)
     while not is_game_over(boss, heroes_list):
